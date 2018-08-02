@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:P="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="city1" class="com.shuyan.City" P:name="changchun" P:province="jilin"/>
+
+    <bean id="kuancheng" class="com.shuyan.County" P:name="kuancheng" P:city-ref="city1"/>
+    <!-- 等效于 -->
+    <bean id="erdao" class="com.shuyan.County" P:name="erdao" P:city="#{city1}"/>
+
+    <bean id="lvyuan1" class="com.shuyan.County" P:personNum="100" P:name="lvyuan"/>
+    <!-- 等效于 -->
+    <bean id="lvyuan0" class="com.shuyan.County" P:personNum="#{100}" P:name="#{'lvyuan'}"/>
+
+    <bean id="county0" class="com.shuyan.County" P:PI="#{T(java.lang.Math).PI}" />
+
+    <bean id="county1" class="com.shuyan.County" P:PI="#{1+2}" />
+
+    <bean id="county2" class="com.shuyan.County" P:name="#{'lv'+'yuan'}" />
+
+    <bean id="county3" class="com.shuyan.County" P:flag="#{1 > 2}" />
+
+    <bean id="county4" class="com.shuyan.County" P:flag="#{1 > 2 or 3 > 2}" />
+
+    <bean id="county5" class="com.shuyan.County" P:flag="#{(1>2)? true:false}" />
+
+    <bean id="county6" class="com.shuyan.County" P:flag="#{'abcd123a' matches '^(?=\w*\d)\w*'}" />
+
+    <bean id="county7" class="com.shuyan.County" P:PI="#{county1.PI}" />
+</beans>

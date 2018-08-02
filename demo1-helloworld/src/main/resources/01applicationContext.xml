@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:P="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+<bean id="hello" class="com.shuyan.Hello">
+    <property name="str">
+        <value><![CDATA[spring]]></value>
+    </property>
+</bean>
+<bean id="car" class="com.shuyan.Car">
+    <constructor-arg index="0" type="java.lang.String">
+        <value><![CDATA[<BYD]]></value>
+    </constructor-arg>
+    <constructor-arg value="100000"/>
+    <constructor-arg value="10"/>
+</bean>
+<bean id="person" class="com.shuyan.Person">
+    <property name="name" value="shuyan"/>
+    <property name="age" value="26"/>
+    <property name="car">
+        <bean class="com.shuyan.Car">
+            <constructor-arg value="Ford"/>
+            <constructor-arg value="100000"/>
+            <constructor-arg value="10"/>
+        </bean>
+    </property>
+</bean>
+    <bean id="person1" class="com.shuyan.Person">
+        <property name="name" value="shuyan"/>
+        <property name="age" value="26"/>
+        <property name="car" ref="car"/>
+        <property name="car.name" value="mzd"/>
+    </bean>
+    <bean id="person2" class="com.shuyan.Person">
+        <property name="name" value="shuyan"/>
+        <property name="age" value="26"/>
+        <property name="car" ref="car"/>
+        <property name="car.name" value="mzd"/>
+        <property name="carList">
+            <list>
+                <ref bean="car"/>
+                <bean class="com.shuyan.Car">
+                    <constructor-arg value="mzd"/>
+                    <constructor-arg value="100000"/>
+                    <constructor-arg value="10"/>
+                </bean>
+            </list>
+        </property>
+    </bean>
+    <bean id="person3" class="com.shuyan.Person">
+        <property name="name" value="shuyan"/>
+        <property name="age" value="26"/>
+        <property name="car" ref="car"/>
+        <property name="car.name" value="mzd"/>
+        <property name="carMap">
+            <map>
+                <entry key="a" value-ref="car"/>
+                <entry key="b">
+                    <bean class="com.shuyan.Car">
+                        <constructor-arg value="mzd"/>
+                        <constructor-arg value="100000"/>
+                        <constructor-arg value="10"/>
+                    </bean>
+                </entry>
+            </map>
+        </property>
+        <property name="properties" >
+            <props>
+                <prop key="user">root</prop>
+                <prop key="password">rootroot</prop>
+            </props>
+        </property>
+    </bean>
+    <util:list id="carList">
+        <ref bean="car"/>
+        <bean class="com.shuyan.Car">
+            <constructor-arg value="mzd"/>
+            <constructor-arg value="100000"/>
+            <constructor-arg value="10"/>
+        </bean>
+    </util:list>
+    <bean id="person4" class="com.shuyan.Person">
+        <property name="name" value="shuyan"/>
+        <property name="age" value="26"/>
+        <property name="carList" ref="carList"/>
+    </bean>
+    <bean id="person5" class="com.shuyan.Person" P:age="25" P:name="cj" P:carList-ref="carList"/>
+    <bean id="person6" class="com.shuyan.Person" P:age="25" P:name="cj" autowire="byName"/>
+</beans>

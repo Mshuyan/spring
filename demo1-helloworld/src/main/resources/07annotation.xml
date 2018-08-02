@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:P="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <context:component-scan base-package="com.shuyan.demo07_annotation"/>
+
+    <context:component-scan base-package="com.shuyan.demo07_annotation" resource-pattern="service/*.class"/>
+
+    <!-- 只扫描包含了指定注解的类 -->
+    <context:component-scan base-package="com.shuyan.demo07_annotation" use-default-filters="false">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+    </context:component-scan>
+
+    <!-- 排除包含了指定注解的类 -->
+    <context:component-scan base-package="com.shuyan.demo07_annotation">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Service"/>
+    </context:component-scan>
+
+    <!-- 只扫描指定类或实现了指定接口的类 -->
+    <context:component-scan base-package="com.shuyan.demo07_annotation" use-default-filters="false">
+        <context:include-filter type="assignable" expression="com.shuyan.demo07_annotation.UserInterface"/>
+    </context:component-scan>
+
+    <!-- 排除指定类或实现了指定接口的类 -->
+    <context:component-scan base-package="com.shuyan.demo07_annotation">
+        <context:exclude-filter type="assignable" expression="com.shuyan.demo07_annotation.UserInterface"/>
+    </context:component-scan>
+</beans>

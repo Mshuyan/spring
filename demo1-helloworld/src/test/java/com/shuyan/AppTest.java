@@ -17,4 +17,10 @@ public class AppTest
     {
         assertTrue( true );
     }
+
+    @Test
+    public void matchesTest(){
+        boolean matches = "abcd123".matches("^(?=\\w*\\d)\\w*");
+        System.out.println(matches);
+    }
 }

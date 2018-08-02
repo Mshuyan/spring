@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:P="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+<!--    <bean id="city1" class="com.shuyan.City" P:name="changchun" P:province="jilin"/>
+    <bean id="city2" class="com.shuyan.City" P:name="jilin" P:province="jilin"/>-->
+<!--    <bean id="city1" class="com.shuyan.City" P:name="changchun" P:province="jilin"/>
+    <bean id="city2" parent="city1" P:name="jilin" />-->
+    <bean id="city" class="com.shuyan.City" P:province="jilin" abstract="true"/>
+<!--    <bean id="city1" parent="city" P:name="changchun"/>
+    <bean id="city2" parent="city" P:name="jilin"/>-->
+    <bean id="car" class="com.shuyan.Car" P:name="mzd" P:age="5" P:price="200000"/>
+    <bean id="person" class="com.shuyan.Person" P:name="shuyan" P:age="26" depends-on="car,city"/>
+</beans>
