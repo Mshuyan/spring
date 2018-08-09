@@ -918,6 +918,537 @@ bean的作用域分为2种：
      >
      > 当标注在Map集合上时，会将所有bean的名称作为key，bean作为value装配到Map集合中
 
+#### 4.2.4. 泛型依赖注入
+
+> + 在父类中使用@Autowired，不在类上使用注解定义为bean，将其子类定义为bean，依然可以进行依赖注入
+> + 泛型类定义的属性上使用@Autowired，spring会在IOC容器中查找相同类型并且泛型相同的bean进行依赖注入
+
+例：
+
++ `BaseRepository<T>`
+
+  ```java
+  public class BaseRepository<T> {
+  }
+  ```
+
++ `BaseService<T>`
+
+  ```java
+  public class BaseService<T> {
+      @Autowired
+      private BaseRepository<T> repository;
+      public void say() {
+          System.out.println(repository);
+      }
+  }
+  ```
+
++ `UserRepository`
+
+  ```java
+  @Repository
+  public class UserRepository extends BaseRepository<User> {
+  }
+  ```
+
++ `UserService`
+
+  ```java
+  @Service
+  public class UserService extends BaseService<User> {
+  }
+  ```
+
+## 5. AOP
+
+### 5.1. AOP由来
+
+#### 5.1.1. 问题
+
++ 实现加法、乘法的接口与实现类
+
+  > 接口
+
+  ```java
+  public interface Cal {
+      int add (int i, int j);
+      int mul (int i, int j);
+  }
+  ```
+
+  > 实现类
+
+  ```java
+  public class CalImpl implements Cal {
+      @Override
+      public int add(int i, int j) {
+          int result = i + j;
+          return result;
+      }
+      @Override
+      public int mul(int i, int j) {
+          int result = i * j;
+          return result;
+      }
+  }
+  ```
+
++ 新需求
+
+  > 现在增加1个新需求，该类的每个方法执行前后，分别加上日志打印
+  >
+  > 代码就变成如下：
+
+  ```java
+  public class CalImpl implements Cal {
+      @Override
+      public int add(int i, int j) {
+          System.out.println("add start");
+          int result = i + j;
+          System.out.println("add end");
+          return result;
+      }
+      @Override
+      public int mul(int i, int j) {
+          System.out.println("mul start");
+          int result = i * j;
+          System.out.println("mul end");
+          return result;
+      }
+  }
+  ```
+
++ 缺点
+
+  > 这样实现，代码会存在如下缺点：
+  >
+  > + 代码混乱
+  >
+  >   原有的业务逻辑急剧膨胀，实现业务逻辑同时需要兼顾很多内容，并且附加的代码大多都是重复的代码
+  >
+  > + 代码分散
+  >
+  >   由于这样的代码可能遍布很多地方，需要更改这些附加代码时，每个地方都需要更改
+
+#### 5.1.2. 动态代理解决
+
+> 上述问题可以通过动态代理解决
+
++ 代理类
+
+  ```java
+  public class CalProxy {
+      private Cal target;
+      public CalProxy(Cal target) {
+          this.target = target;
+      }
+      public Cal getLoggerProxy(){
+          InvocationHandler handler = new InvocationHandler() {
+              @Override
+              public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                  System.out.println(method.getName() + " start");
+                  Object result = method.invoke(target, args);
+                  System.out.println(method.getName() + " end");
+                  return result;
+              }
+          };
+          return (Cal) Proxy.newProxyInstance(Cal.class.getClassLoader(),new Class[]{Cal.class},handler);
+      }
+  }
+  ```
+
+  > 如此，这些附加的代码就集中在代理类中了，原有逻辑不需要关心这些附加代码，修改起来也方便了
+
+#### 5.1.3. AOP
+
+> spring框架内部集成了AOP，来解决上面的问题，AOP底层实现就是动态代理
+
+### 5.2. AOP介绍
+
+1. 概念
+
+   > APO就是面向切面编程，通俗点就是执行某方法前后可以执行一些其他操作
+
+2. 术语
+
+   + 连接点（JoinPoint）
+
+     > + 连接点就是某个方法的某个方位，是客观存在的，即使不对1个类使用AOP，该类仍然存在这些连接点，就像1个人前面、后面、左面、右面，这些相对位置是客观存在的，而1个方法的相对位置就是一些连接点。连接点可以理解为是：相对方法 + 方位信息
+     > + `Aspectj`中的方位包括如下几种：
+     >   + 方法执行前
+     >   + 方法执行后
+     >   + 方法返回结果后
+     >   + 方法抛出异常后
+
+   + 切面（Aspect）
+
+     > + 标注了`@Aspect`注解的类就是1个切面，如`讲解参考代码`中的`CalAspectj`类
+     > + 切面由切点和通知组成
+
+   + 切点（PointCut）
+
+     > + 切点是切面中使用`@Pointcut`注解对某方法的定位
+     > + 切点定义后本身没有实际意义，就像变量一样，先放在这，等待后面在`通知注解`中被使用
+
+   + 通知 [增强]（Advice）
+
+     >  通知注解及其所标注的方法，如`讲解参考代码`中的`@Before`注解和`beforeMethod`方法
+
+   + 目标
+
+     > 切点指定的方法就是目标，如`讲解参考代码`中的`@Pointcut`注解指定得方法`public int com.shuyan.demo2_aop.Cal.*(..)`
+
+   + 引介（Introduction）    
+
+     > 引介是一种特殊的通知，它为类添加一些属性和方法。这样，即使一个业务类原本没有实现某个接口，通过`AOP`的引介功能，我们可以动态地为该业务类添加接口的实现逻辑，让业务类成为这个接口的实现类。
+
+   + 织入（Weaving）
+
+     >  织入是将通知添加对目标类具体连接点上的过程。
+
+   + 代理（Proxy）
+
+     >  一个类被AOP织入通知后，就产出了一个结果类，它是融合了原类和增强逻辑的代理类。根据不同的代理方式，代理类既可能是和原类具有相同接口的类，也可能就是原类的子类，所以我们可以采用调用原类相同的方式调用代理类。
+
+   + 讲解参考代码
+
+     ```java
+     @Aspect
+     @Component
+     public class CalAspectj {
+     
+         @Pointcut("execution(public int com.shuyan.demo2_aop.Cal.*(..))")
+         public void method(){}
+     
+         @Before("method()")
+         private void beforeMethod(JoinPoint joinPoint){
+             System.out.println("before " + joinPoint.getSignature().getName() + "...");
+         }
+     }
+     ```
+
+     
+
+### 5.3. AOP使用
+
+#### 5.3.1. 依赖
+
+```Xml
+<dependency>
+    <groupId>org.aspectj</groupId>
+    <artifactId>aspectjweaver</artifactId>
+    <version>1.9.1</version>
+</dependency>
+```
+
+#### 5.3.2. 基于注解
+
+##### 5.3.2.1 入门程序
+
+> 在原有`Cal`接口、`CalImpl`实现类的基础上，将`CalImpl`定义为1改为bean，并实现如下代码：
+
++ 切面类
+
+  ```java
+  @Aspect
+  @Component
+  public class CalAspectj {
+      @Before("execution(public int com.shuyan.demo2_aop.Cal.add(int,int))")
+      public void beforeMethod(JoinPoint joinPoint){
+          System.out.println("before " + joinPoint.getSignature().getName() + "...");
+      }
+  }
+  ```
+
++ xml
+
+  ```xml
+  <aop:aspectj-autoproxy/>
+  ```
+
++ 入门程序解析
+
+  + 定义1个bean，标注`@Aspect`注解，标注这是1个切面类
+  + 定义1个方法，传入`JoinPoint`对象，在该方法中实现附加功能
+  + 在该方法上加上通知注解，用于指定当前方法在哪些类的什么时候执行
+  + 在xml文件中加入`aop:aspectj`标签，用于使`Aspectj`相关注解生效，并为匹配的类生成代理对象
+
+##### 5.3.2.2. 切点定义
+
+> + 在切面类中定义没有参数与返回值的空方法
+> + 在该方法上标注`@Pointcut`注解，并设置其value属性指定切点
+
+@Pointcut
+
++ 功能：用于定义切点
+
++ 属性：
+
+  + value
+
+    + 功能：用于指定哪些方法执行`AOP`
+
+    + 值
+
+      >  该属性的值必须为切入点指示器，常用切入点指示器为`execution()`，在`execution()`内按照如下语法指定切点：
+      >
+      > + 明确指定切点：
+      >
+      >   访问修饰符 返回值 方法名全路径(参数列表)
+      >
+      >   例：
+      >
+      >   `@Pointcut("execution(public int com.shuyan.demo2_aop.Cal.add(int,int))")`
+      >
+      > + 当`execution()`内的值的各部分可以不被做限制时，可以使用`*`代替，参数列表可以用`..`代替
+      >
+      >   例：
+      >
+      >   `@Pointcut("execution(* com.shuyan.demo2_aop.Cal.*(..))")`
+
+      > 切入点指示器一共有如下几种：
+      >
+      > + args() 
+      > + @args() 
+      > + execution() 
+      > + this() 
+      > + target() 
+      > + @target() 
+      > + within() 
+      > + @within() 
+      > + @annotation
+      >
+      > 其他的指示器用到的时候再学
+
+  + argNames
+
+    > + 用于限制方法的参数列表，设置该属性后形参列表必须与该属性完全一致才能匹配成功
+    > + 指定的方法有多个参数时，该属性的值将参数列表中的各个形参使用`,`隔开
+
+##### 5.3.2.3. 通知注解
+
++ 通知注解共有如下几种
+  + @Before
+
+    > 前置通知：方法执行前
+
+  + @After
+
+    > 后置通知：方法执行后（无论是否发生异常）
+
+  + @AfterRunning
+
+    > 返回通知：方法返回结果之后执行（发生异常时没有返回结果，所以发生异常时没有返回通知）
+    >
+    > 返回通知可访问到方法的返回值
+
+    例：
+
+    ```java
+    @AfterReturning(value = "execution(* com.shuyan.demo2_aop.Cal.*(..))",returning = "result")
+    private void afterReturning(JoinPoint joinPoint,Object result){
+        System.out.println("method: " + joinPoint.getSignature().getName());
+        System.out.println("return: " + result);
+    }
+    ```
+
+    属性：
+
+    + value
+
+      > 与其他通知注解的value属性相同
+
+    + returning
+
+      + 功能：指定返回值作为参数传入他所标注方法的形参
+      + 例：参见上例代码中的`returning`属性及其标注方法的形参`result`
+
+  + @AfterThrowing
+
+    > 异常通知：方法抛出异常之后执行
+    >
+    > 异常通知可以访问到出现的异常
+
+    例：
+
+    ```java
+    @AfterThrowing(value = "execution(* com.shuyan.demo2_aop.Cal.*(..))",throwing = "e")
+    private void afterThrowing(JoinPoint joinPoint,Exception e){
+        System.out.println("after throwing method: " + joinPoint.getSignature().getName());
+        System.out.println("exception: " + e);
+    }
+    ```
+
+    属性：
+
+    + value
+
+      > 与其他注解的value属性相同
+
+    + throwing
+
+      + 功能：指定产生的异常作为参数传入他所标注方法的形参
+      + 例：参见上例代码中的`throwing`属性及其标注方法的形参`e`
+      + 注意：异常通知只有在形参传入的那种类型的异常产生时才会发生，其他类型的异常不会产生异常通知；如：形参类型为`NullPointerException`，当产生`ArithmeticException`异常时，异常通知的方法不会被调用
+
+  + @Around
+
+    > 环绕通知：
+    >
+    > + 相当于动态代理中`InvocationHandler`对象的`invoke`方法
+    > + 与动态代理中`InvocationHandler`对象的`invoke`方法一样，目标方法被调用时`@Around`标注的方法就会被调用
+    > + 在环绕通知标注的方法中，可以自行实现上述的4个通知
+    > + `@Around`标注的方法必须传入`ProceedingJoinPoint`对象，且必须拥有返回值
+
+    例：
+
+    ```java
+    @Around(value = "execution(* com.shuyan.demo2_aop.Cal.*(..))")
+    private Object aroundMethod(ProceedingJoinPoint pjd){
+        Object result = null;
+        String methodName = pjd.getSignature().getName();
+        try{
+            System.out.println("before method " + methodName + "...");
+            result = pjd.proceed();
+            System.out.println("after method " + methodName + "...");
+        }catch (Throwable throwable) {
+            // 后置通知必须在这里再被调用1次，才能跟 @After 一致
+            System.out.println("after method " + methodName + "...");
+            System.out.println("afterThrowing method " + methodName + "...");
+            // 这里必须将异常抛出，才能保证异常通知和返回通知只能被调用1个
+            throw new RuntimeException("123");
+        }
+        System.out.println("afterReturning method " + methodName + "...");
+        return result;
+    }
+    ```
+
+    
+
++ 通知注解属性
+
+  + value
+
+    + 功能：指定切点
+
+    + 值
+
+      > 该属性的值可以是两种：
+      >
+      > + 前面定义的切点方法，通过切点定位到某个方法
+      >
+      > + 直接设置为`@Pointcut`注解的value属性值，直接定位到某个方法，当切点与引用该切点的通知注解不再同一个包下时，还需要指定包名
+      >
+      >   如：`@Before("com.shuyan.demo2_aop.annocation.CalAspectj.method()")`
+      >
+      > 这两种设置方法作用是相同的
+
+      例：
+
+      ```java
+      @Pointcut(value = "execution(* com.shuyan.demo2_aop.Cal.*(..))")
+      public void method(){}
+      
+      @Before("method()")
+      private void beforeMethod(JoinPoint joinPoint){
+          System.out.println("before " + joinPoint.getSignature().getName() + "...");
+      }
+      ```
+
+      > 等效于
+
+      ```java
+      @Before("execution(* com.shuyan.demo2_aop.Cal.*(..))")
+      private void beforeMethod(JoinPoint joinPoint){
+          System.out.println("before " + joinPoint.getSignature().getName() + "...");
+      }
+      ```
+
+  + argNames
+
+    > 当value属性值直接使用切入点指示器定位到某个方法时，才会使用该属性，该属性与`@Pointcut`的`argNames`属性用法完全相同
+
++ 通知出现顺序
+
+  > 1. 前置通知
+  > 2. 后置通知
+  > 3. 返回通知/异常通知（只能出现1个）
+
+##### 5.3.2.4. 通知方法参数
+
+> 通知方法可以是无参的，也可以传入1个`JoinPoint`参数，该参数包含了连接点的所有信息，如：目标方法名、参数列表等
+
+```java
+@Before("execution(* com.shuyan.demo2_aop.Cal.*(..))")
+private void beforeMethod(JoinPoint joinPoint){
+    System.out.println("method: " + joinPoint.getSignature().getName());
+    System.out.println("args  : " + Arrays.asList(joinPoint.getArgs()));
+}
+```
+
+##### 5.3.2.5. 切面优先级
+
+> 当1个连接点匹配到多个切面时，可以在切面类上使用`@Order`注解指定切面的优先级
+
++ @Order
+
+  + 功能：指定切面的优先级，优先级越高越先执行
+
+  + 值：
+
+    值为数字，值越小，优先级越高
+
+  + 例
+
+    ```java
+    @Order(1)
+    @Aspect
+    @Component
+    public class CalAspectj1 {
+    ```
+
+    ```java
+    @Order(2)
+    @Aspect
+    @Component
+    public class CalAspectj2 {
+    ```
+
+    > 当1个连接点匹配到上述两个切面时，`CalAspectj1`内的通知会先被执行
+
+#### 5.3.3. 基于配置文件
+
+例：
+
+```xml
+<!-- 配置目标方法所在bean -->
+<bean id="calImpl" class="com.shuyan.demo2_aop.CalImpl"/>
+<!-- 配置切面bean -->
+<bean id="calAspectj" class="com.shuyan.demo2_aop.xml.CalAspectj"/>
+<!-- 配置AOP -->
+<aop:config>
+    <!-- 配置切点 -->
+    <aop:pointcut id="pointcut" expression="execution(* com.shuyan.demo2_aop.Cal.*(..))"/>
+    <!-- 配置切面 -->
+    <aop:aspect ref="calAspectj" order="1">
+        <!-- 配置通知 -->
+        <aop:around method="aroundMethod" pointcut-ref="pointcut"/>
+    </aop:aspect>
+</aop:config>
+```
+
+## 6. 事务管理
+
+> spring管理事务有2种方式：
+>
+> + 声名式事务
+> + 编程式事务
+
+### 6.1. 声名式事务
+
+
+
 
 
 

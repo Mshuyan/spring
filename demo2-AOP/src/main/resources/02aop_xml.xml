@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <!-- 基于xml方式 -->
+    <!-- 配置目标方法所在bean -->
+    <bean id="calImpl" class="com.shuyan.demo2_aop.CalImpl"/>
+    <!-- 配置切面bean -->
+    <bean id="calAspectj" class="com.shuyan.demo2_aop.xml.CalAspectj"/>
+    <!-- 配置AOP -->
+    <aop:config>
+        <!-- 配置切点 -->
+        <aop:pointcut id="pointcut" expression="execution(* com.shuyan.demo2_aop.Cal.*(..))"/>
+        <!-- 配置切面 -->
+        <aop:aspect ref="calAspectj" order="1">
+            <!-- 配置通知 -->
+            <aop:around method="aroundMethod" pointcut-ref="pointcut"/>
+        </aop:aspect>
+    </aop:config>
+
+</beans>

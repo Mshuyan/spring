@@ -4,6 +4,7 @@
 mvnw
 /.mvn
 /target
+/*/target
 .gitattributes
 *.jar
 /out
