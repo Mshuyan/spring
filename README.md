@@ -48,7 +48,7 @@ public class Hello {
 
 ### 2.2. spring配置文件
 
-> 在类路径下创建1个spring配置文件，参见[创建spring配置文件](# 1.2. 创建spring配置文件)，内容如下
+> 在类路径下创建1个spring配置文件，参见[创建spring配置文件](#1.2. 创建spring配置文件)，内容如下
 
 ```xml
 <bean id="hello" class="com.shuyan.Hello">
