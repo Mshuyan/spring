@@ -6,7 +6,7 @@
         SELECT id, name, age FROM user where name=#{name}
     </select>
 
-    <select id="getUserList" resultType="com.shuyan.dao.user.bean.UserEntity">
+    <select id="getUserList" resultType="UserEntity">
         SELECT id, name, age FROM user
     </select>
 </mapper>

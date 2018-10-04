@@ -1,10 +1,12 @@
 # spring
 
+> 学习资料：[bilibili](https://www.bilibili.com/video/av21555783/?p=7)
+
 ## 1.基础
 
 ### 1.1. 创建spring工程
 
-​        创建Maven项目，加入如下依赖
+        创建Maven项目，加入如下依赖
 
 ```xml
 <dependency>
@@ -702,6 +704,14 @@ bean的作用域分为2种：
 
 > 工厂方法获取bean实例感觉应用不多，这里不记了，如有需要在学
 
+#### 4.1.9. 引用其他spring配置文件
+
+> 在1个`spring.xml`中引用另外一个`spring.xml`
+
+```xml
+<import resource="classpath:security.xml"/>
+```
+
 ### 4.2. 基于注解
 
 #### 4.2.1. 使用注解定义bean
@@ -1128,7 +1138,6 @@ bean的作用域分为2种：
      }
      ```
 
-     
 
 ### 5.3. AOP使用
 
@@ -1324,8 +1333,6 @@ bean的作用域分为2种：
     }
     ```
 
-    
-
 + 通知注解属性
 
   + value
@@ -1446,6 +1453,161 @@ private void beforeMethod(JoinPoint joinPoint){
 > + 编程式事务
 
 ### 6.1. 声名式事务
+
+#### 6.1.1. `@Transactional`声明式事务
+
++ 在spring配置文件中配置`事务管理器`
+
+  ```Xml
+  <!-- 配置事务管理器 -->
+  <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+      <!-- 指定事务管理的数据源,就是上面配置的连接池 -->
+      <property name="dataSource" ref="dataSource" />
+  </bean>
+  
+  <!-- 使用annotation注解方式配置事务 -->
+  <tx:annotation-driven transaction-manager="transactionManager" />
+  ```
+
+  > + 如果`事务管理器`的名称为`transactionManager`，则可以不配置`tx:annotation-driven`标签，否则需要配置这个标签
+  > + `datasource`连接池参见`spring集成mybatis`
+
++ 使用`@Transaction`注解管理事务
+
+  ```java
+  @Service
+  public class UserService {
+      @Autowired
+      private UserMapper userMapper;
+  
+      @Transactional
+      public void update(){
+          userMapper.getUser("shuyan");
+      }
+  }
+  ```
+
+  > `@Transactional`注解可以标注在方法上或bean上
+  >
+  > + 方法上时只开启这个方法的事务
+  > + bean上时，这个bean上的每个方法都开启事务
+
+#### 6.1.2. `@Transactional`注解属性
+
+##### 6.1.2.1. 事务的传播行为
+
+> 通过`propagation`属性指定当前事务的传播行为；即当1个事务方法被其他事务方法调用时，如何处理当前方法的事务
+
+例：
+
+```java
+@Transactional(propagation = Propagation.REQUIRED)
+public void update(){
+    userMapper.getUser("shuyan");
+}
+```
+
+1. `REQUIRED`
+
+   + 作用：忽略当前方法的事务，使用调用者的事务
+
+   + 该值也是默认值
+
+   + 说明
+
+     有3个事务方法A、B、C，B和C的`propagation`属性均为`REQUIRED`，由事务方法A调用事务方法B和C。此时B和C的事务均交给A的事务进行管理，对于方法B来说，当前事务A中的其他方法（也就是C）抛出异常，方法B也会回滚
+
+2. `REQUIRES_NEW`
+
+   + 作用：当前方法的事务是独立的，不受其他事务的影响，也不会影响其他事务
+
+   + 说明
+
+     有3个事务方法A、B、C，B的`propagation`属性为`REQUIRES_NEW`，C的`propagation`属性为`REQUIRED`，由事务方法A调用事务方法B和C。此时C的事务均交给A的事务进行管理，B拥有自己独立的事务；对于方法B来说，他的事务不受其他事务的影响，他自己没有异常就能正常执行；对于C来说，他当前处于A的事务下，而A事务下只有1个C，所以C也不受B的影响。如果A下还有1个`propagation`属性均为`REQUIRED`的事务方法D，则C和D之间是互相影响的。
+
+##### 6.1.2.2. 事务的隔离级别
+
+> 通过`isolation`属性来设置事务的隔离级别
+
+例：
+
+```java
+@Transactional(isolation = Isolation.DEFAULT)
+public void update(){
+    userMapper.getUser("shuyan");
+}
+```
+
+该属性取值有5种（级别由低到高排序，不包括DEFAULT）：
+
++ `READ_UNCOMMITTED`
+
+  最低级别，不常用
+
++ `READ_COMMITTED`
+
+  大多数数据库的默认隔离级别，不包括mysql
+
++ `REPEATABLE_READ`
+
+  mysql的默认隔离级别
+
++ `SERIALIZABLE`
+
+  最高隔离级别
+
++ `DEFAULT`
+
+  默认值，表示跟随数据库的隔离级别
+
+##### 6.1.2.3. 异常与回滚
+
+> 默认事务对所有运行时异常进行回滚
+>
+> 可以通过设置如下两个属性，来设置哪些异常不用回滚，哪些异常需要回滚
+>
+> + `noRollbackFor`
+> + `rollbackFor`
+>
+> 但是一般不设置这个属性，知道就行
+
+例：
+
+```java
+@Transactional(noRollbackFor = {NullPointerException.class},
+               rollbackFor = {RuntimeException.class})
+public void update(){
+    userMapper.getUser("shuyan");
+}
+```
+
+##### 6.1.2.4.readOnly
+
+> 对于只有读取操作的事务，可以指定该属性为`true`（默认`false`），来对该事务进行优化
+
+```java
+@Transactional(readOnly = true)
+public void update(){
+    userMapper.getUser("shuyan");
+}
+```
+
+##### 6.1.2.5. timeOut
+
+> 设置事务的超时时间，单位为秒，如果超过这个时间事务仍未完成，则回滚该事物
+
+```java
+@Transactional(timeout = 3)
+public void update(){
+    userMapper.getUser("shuyan");
+}
+```
+
+
+
+
+
+
 
 
 
